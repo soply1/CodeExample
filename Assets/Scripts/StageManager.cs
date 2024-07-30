@@ -1,57 +1,49 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// WayPoint Manager set new way point and have method for reached way point.
-/// </summary>
 public class StageManager : MonoBehaviour
 {
+    [SerializeField] private Transform stageParent;
+    private int nextStageIndex;
+    private IStage nextStage;
     private List<IStage> stages = new List<IStage>();
-    public static Action WayPointReached;
 
-    private int nextWayPointNum;
-    private int _nextWayPointNum
-    {
-        get
-        {
-            return nextWayPointNum;
-        }
-        set
-        {
-            if (value >= 0 || value < stages.Count)
-            {
-                nextWayPointNum = value;
-            }
-        }
-    }
     private void Awake()
     {
-        for (int i = 0; i < transform.childCount; i++)
+        foreach (IStage stage in stageParent.GetComponentsInChildren<IStage>())
         {
-            if (transform.GetChild(i).TryGetComponent(out IStage stage))
-            {
-                stages.Add(stage);
-            }
+            stages.Add(stage);
         }
+    }
+    private void Start()
+    {
+        nextStage = stages[0];
+        nextStage.TargetPoint.ActivateTarget();
     }
     private void OnEnable()
     {
-        IStage.StageReached += OnReached;
+        EnemyStage.StageReached += ChangeNextStage;
+        FinishStage.StageReached += ChangeNextStage;
     }
     private void OnDisable()
     {
-        IStage.StageReached -= OnReached;
-    }
-    private void OnReached(IStage stage)
-    {
-        _nextWayPointNum++;
-        WayPointReached?.Invoke();
+        EnemyStage.StageReached += ChangeNextStage;
+        FinishStage.StageReached += ChangeNextStage;
     }
 
-    public Vector3 NextWayPoint()
+    private void ChangeNextStage()
     {
-        return stages[_nextWayPointNum].GetPosition();
+        if (nextStageIndex + 1 >= stages.Count)
+        {
+            return;
+        }
+        nextStage = stages[nextStageIndex + 1];
+        nextStageIndex++;
+        nextStage.TargetPoint.ActivateTarget();
+    }
+    public Vector3 GetNextTargetPosition()
+    {
+        return nextStage.TargetPoint.GetPosition();
     }
 }
